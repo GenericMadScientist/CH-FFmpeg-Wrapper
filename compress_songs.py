@@ -6,17 +6,13 @@ import sys
 
 
 def get_jobs(directory):
-    jobs = {'album_jpgs': [], 'album_pngs': [],
-            'audio_files': [], 'delete': []}
+    jobs = {'albums': [], 'audio_files': [], 'delete': []}
 
     for root, _, files in os.walk(directory):
         for f in files:
             path = os.path.join(root, f)
-            if f == 'album.jpg':
-                jobs['album_jpgs'].append(path)
-                continue
-            elif f == 'album.png':
-                jobs['album_pngs'].append(path)
+            if f in ['album.jpg', 'album.png', 'album.JPG', 'album.PNG']:
+                jobs['albums'].append(path)
                 continue
             elif f in ['ch.dat', 'notes.eof', 'ps.dat']:
                 jobs['delete'].append(path)
@@ -33,32 +29,20 @@ def get_jobs(directory):
 def audio_to_opus(ffmpeg, file):
     root, _ = os.path.splitext(file)
     output = root + '.opus'
-    result = subprocess.run(
-        [ffmpeg, '-y', '-i', file, '-b:a', '80k', output], capture_output=True)
+    result = subprocess.run([ffmpeg,
+                             '-y',
+                             '-i',
+                             file,
+                             '-b:a',
+                             '80k',
+                             output.replace('%',
+                                            '%%')],
+                            capture_output=True)
     if result.returncode == 0:
         os.remove(file)
 
 
-def jpg_size(ffmpeg, file):
-    result = subprocess.run(
-        [ffmpeg, '-hide_banner', '-i', file], capture_output=True)
-    for line in result.stderr.split(b'\n'):
-        if line.startswith(b'  Stream #0:0: Video: mjpeg ('):
-            sub_parts = line.split(b'), ')
-            if len(sub_parts) < 3:
-                return None
-            res_str = jpg_size.regex.match(sub_parts[2])
-            if res_str is None or res_str.start() != 0:
-                return None
-            x, _, y = res_str.group().partition(b'x')
-            return (int(x), int(y))
-    return None
-
-
-jpg_size.regex = re.compile(rb'\d+x\d+')
-
-
-def png_size(ffmpeg, file):
+def image_type_and_size(ffmpeg, file):
     result = subprocess.run(
         [ffmpeg, '-hide_banner', '-i', file], capture_output=True)
     for line in result.stderr.split(b'\n'):
@@ -66,23 +50,35 @@ def png_size(ffmpeg, file):
             sub_parts = line.split(b'), ')
             if len(sub_parts) < 2:
                 return None
-            res_str = png_size.regex.match(sub_parts[1])
+            res_str = image_type_and_size.regex.match(sub_parts[1])
             if res_str is None or res_str.start() != 0:
                 return None
             x, _, y = res_str.group().partition(b'x')
-            return (int(x), int(y))
+            return ('png', int(x), int(y))
+        elif line.startswith(b'  Stream #0:0: Video: mjpeg ('):
+            sub_parts = line.split(b'), ')
+            if len(sub_parts) < 3:
+                return None
+            res_str = image_type_and_size.regex.match(sub_parts[2])
+            if res_str is None or res_str.start() != 0:
+                return None
+            x, _, y = res_str.group().partition(b'x')
+            return ('jpeg', int(x), int(y))
     return None
 
 
-png_size.regex = re.compile(rb'\d+x\d+')
+image_type_and_size.regex = re.compile(rb'\d+x\d+')
 
 
-def resize_jpg(ffmpeg, file):
-    resolution = jpg_size(ffmpeg, file)
-    if resolution is None:
+def resize_and_convert_image(ffmpeg, file):
+    data = image_type_and_size(ffmpeg, file)
+    if data is None:
         return
-    x, y = resolution
-    if max(x, y) <= 500:
+    type, x, y = data
+    if type == 'jpeg' and max(x, y) <= 500:
+        head, tail = os.path.split(file)
+        if tail != 'album.jpg':
+            os.rename(file, os.path.join(head, 'album.jpg'))
         return
     max_size = max(x, y)
     x = 500 * x // max_size
@@ -95,33 +91,10 @@ def resize_jpg(ffmpeg, file):
                              file,
                              '-vf',
                              f'scale={x}:{y}',
-                             output],
+                             output.replace('%', '%%')],
                             capture_output=True)
     if result.returncode == 0:
         os.replace(output, file)
-
-
-def png_to_jpg(ffmpeg, file):
-    resolution = png_size(ffmpeg, file)
-    if resolution is None:
-        return
-    x, y = resolution
-    if max(x, y) > 500:
-        max_size = max(x, y)
-        x = 500 * x // max_size
-        y = 500 * y // max_size
-    root, _ = os.path.splitext(file)
-    output = root + '.jpg'
-    result = subprocess.run([ffmpeg,
-                             '-y',
-                             '-i',
-                             file,
-                             '-vf',
-                             f'scale={x}:{y}',
-                             output],
-                            capture_output=True)
-    if result.returncode == 0:
-        os.remove(file)
 
 
 if __name__ == '__main__':
@@ -137,12 +110,8 @@ if __name__ == '__main__':
             future = executor.submit(audio_to_opus, ffmpeg, f)
             futures.append(future)
 
-        for f in jobs['album_jpgs']:
-            future = executor.submit(resize_jpg, ffmpeg, f)
-            futures.append(future)
-
-        for f in jobs['album_pngs']:
-            future = executor.submit(png_to_jpg, ffmpeg, f)
+        for f in jobs['albums']:
+            future = executor.submit(resize_and_convert_image, ffmpeg, f)
             futures.append(future)
 
         for f in jobs['delete']:
