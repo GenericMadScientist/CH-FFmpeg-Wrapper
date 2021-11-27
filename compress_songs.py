@@ -35,8 +35,7 @@ def audio_to_opus(ffmpeg, file):
                              file,
                              '-b:a',
                              '80k',
-                             output.replace('%',
-                                            '%%')],
+                             output],
                             capture_output=True)
     if result.returncode == 0:
         os.remove(file)
@@ -94,7 +93,9 @@ def resize_and_convert_image(ffmpeg, file):
                              output.replace('%', '%%')],
                             capture_output=True)
     if result.returncode == 0:
-        os.replace(output, file)
+        head, _ = os.path.split(file)
+        os.remove(file)
+        os.rename(output, os.path.join(head, 'album.jpg'))
 
 
 if __name__ == '__main__':
