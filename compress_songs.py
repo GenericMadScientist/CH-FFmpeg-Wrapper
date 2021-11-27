@@ -11,7 +11,7 @@ def get_jobs(directory):
     for root, _, files in os.walk(directory):
         for f in files:
             path = os.path.join(root, f)
-            if f in ['album.jpg', 'album.png', 'album.JPG', 'album.PNG']:
+            if f.lower() in ['album.jpg', 'album.png']:
                 jobs['albums'].append(path)
                 continue
             elif f in ['ch.dat', 'notes.eof', 'ps.dat']:
