@@ -5,7 +5,7 @@ A script for reducing the file size of your Clone Hero songs directory.
 ## Install
 
 You need Python installed. I've developed with 3.10, recent versions should
-work.
+work. Make sure to tick the option in the installer to add Python to your PATH.
 
 Then download or install FFmpeg. If you're on Windows, you can just use the
 executable bundled with the script in Releases. If you're on Mac or Linux,
@@ -38,8 +38,13 @@ supporting the opus file format. Be aware of this before proceeding.
 The most common problem people run into is that even after installation Python
 will fail to run and instead you'll get some nonsense about the Microsoft Store.
 If you run into this problem, try the solution mentioned in
-[this SO answer](https://stackoverflow.com/a/58773979/13212204). If other
-problems crop up enough I'll expand this section.
+[this SO answer](https://stackoverflow.com/a/58773979/13212204).
+
+The other common problem is being told something like
+`'python' is not recognized as an internal or external command`
+which means Python is not on your PATH. The easiest way to fix this is to
+uninstall Python, then reinstall it and make sure to tick the option to add
+Python to your PATH.
 
 ## Contact
 
