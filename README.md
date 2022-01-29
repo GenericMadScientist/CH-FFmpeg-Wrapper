@@ -15,7 +15,7 @@ install it through your package manager so it's accessible on the command line.
 
 On the command line just do
 
-```
+```batch
 > python compress_songs.py "<Your CH songs directory>"
 ```
 
@@ -32,6 +32,14 @@ longer. I strongly suggest doing this overnight.
 
 Finally this will make your songs incompatible with v23, due to it not
 supporting the opus file format. Be aware of this before proceeding.
+
+## Troubleshooting
+
+The most common problem people run into is that even after installation Python
+will fail to run and instead you'll get some nonsense about the Microsoft Store.
+If you run into this problem, try the solution mentioned in
+[this SO answer](https://stackoverflow.com/a/58773979/13212204). If other
+problems crop up enough I'll expand this section.
 
 ## Contact
 
