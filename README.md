@@ -49,4 +49,4 @@ Python to your PATH.
 ## Contact
 
 Any bug reports can be filed on the GitHub page or sent to me on Discord. My
-account is GMS#5303.
+account is genericmadscientist.
